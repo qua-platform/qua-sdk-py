@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package io.qualang.api.v1;
+
+service InfoService {
+  rpc GetInfo(GetInfoRequest) returns (GetInfoResponse) {}
+}
+
+message GetInfoRequest {
+
+}
+
+message GetInfoResponse {
+  ImplementationDetails implementation = 1;
+  repeated string capabilities = 2;
+}
+
+message ImplementationDetails {
+  string name = 1;
+  string version = 2;
+  string url = 3;
+}
