@@ -1,0 +1,58 @@
+[tool.poetry]
+name = "qua"
+version = "0.1.0-rc1"
+description = "SDK to interact with a quantum computer at the pulse level"
+authors = ["Tal Shani <tal@quantum-machines.co>"]
+license = "BSD-3-Clause"
+include = [
+    "CHANGELOG.md",
+    "LICENSE",
+    "qua/grpc/**/*.py"
+]
+exclude = [
+    "qua/tests",
+    "qua/*/tests"
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+betterproto = "^1.2.5"
+grpclib = "^0.4.2"
+
+[tool.poetry.dev-dependencies]
+black = "^21.7b0"
+flake8 = "^3.9.2"
+pytest = "^6.2.2"
+flake8-bugbear = "^21.4.3"
+poethepoet = "^0.10.0"
+grpcio-tools = "^1.39.0"
+betterproto = {extras = ["compiler"], version = "^1.2.5"}
+
+[tool.poe.tasks]
+
+[tool.poe.tasks.generate-grpc]
+cmd = '''
+poetry run python -m grpc_tools.protoc -Iproto --python_betterproto_out=qua/grpc
+io/qualang/api/v1/info_service.proto
+'''
+help = "Generate gRPC python files for communicating with QUA machine"
+
+[tool.poe.tasks.format]
+cmd = "black qua"
+help = "Format source files according to the style rules"
+
+[tool.poe.tasks.check-format]
+cmd = "black qua --check"
+help = "Check that all files are formatted according to the style rules"
+
+[tool.poe.tasks.lint]
+cmd = "flake8 qua"
+help = "Check for lint errors"
+
+[tool.poe.tasks.test]
+cmd = "pytest"
+help = "Run all unit tests"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

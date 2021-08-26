@@ -1,0 +1,8 @@
+.idea
+.venv
+dist
+
+qua/grpc/**
+!qua/grpc/__init__.py
+
+.pytest_cache
