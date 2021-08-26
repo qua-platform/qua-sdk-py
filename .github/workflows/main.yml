@@ -1,0 +1,139 @@
+name: Main
+
+on:
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release Version'
+        required: false
+        default: ''
+
+jobs:
+
+  Validate-gRPC:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: bufbuild/buf-setup-action@v0.3.1
+        id: setup
+      - uses: bufbuild/buf-lint-action@v0.3.0
+        if: ${{ steps.setup.outcome == 'success' }}
+        with:
+          input: 'proto'
+      - uses: bufbuild/buf-breaking-action@v0.4.0
+        if: ${{ steps.setup.outcome == 'success' }}
+        env:
+          BUF_INPUT_HTTPS_USERNAME: ${{ github.actor }}
+          BUF_INPUT_HTTPS_PASSWORD: ${{ github.token }}
+        with:
+          input: 'proto'
+          against: 'https://github.com/qua-platform/qua-sdk-py.git#branch=main,subdir=proto'
+  Build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.project-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+
+      - name: Install poetry
+        uses: ./.github/actions/install-poetry
+
+      - name: Setup venv Cache
+        id: cache-poetry-venv
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key:  poetry-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-
+
+      - name: Create output directories
+        shell: bash
+        run: |
+          [ -d ${COVERAGE_REPORT_PATH} ] || mkdir -p ${COVERAGE_REPORT_PATH}
+          [ -d ${JUNIT_REPORT_PATH} ] || mkdir -p ${JUNIT_REPORT_PATH}
+            
+      - name: Set up the project
+        run: poetry install
+        
+      - name: Generate files
+        run: poetry run poe generate-grpc
+
+      - name: Check formatting
+        run: poetry run poe check-format
+
+      - name: Check linting
+        run: poetry run poe lint
+
+      - name: Test
+        run: poetry run poe test
+
+      - name: Build
+        run: poetry build
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: |
+            dist/*.tar.gz
+            dist/*.whl
+          retention-days: 3
+      
+      - name: Get version from project
+        id: project-version
+        run: echo ::set-output name=version::$(poetry version -s)
+          
+  Release:
+    needs: [Build]
+    environment: PyPI Deployment
+    runs-on: ubuntu-latest
+    if: github.event.inputs.version != '' && github.event.inputs.version == needs.Build.outputs.version
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+
+      - name: Version release logic
+        id: version-logic
+        env:
+          RELEASE_VERSION: ${{ needs.Build.outputs.version }}
+        run: |
+          if [[ "$RELEASE_VERSION" == *"-"* ]]
+          then
+            echo '::set-output name=GITHUB_EXTRA_FLAG::-p'
+            echo '::set-output name=CHANGLOG_VERSION::Unreleased'
+          else
+            echo '::set-output name=GITHUB_EXTRA_FLAG::'
+            echo "::set-output name=CHANGLOG_VERSION::${RELEASE_VERSION}"
+          fi
+
+      - name: Extract version changelog
+        id: extracted-changelog
+        uses: talshani/keep-a-changelog-extract@v0.0.1
+        with:
+          version: ${{ steps.version-logic.outputs.CHANGLOG_VERSION }}
+
+      - name: Create GitHub release
+        run: |
+          zip -r "proto-${RELEASE_VERSION}.zip" proto
+          gh release create v${RELEASE_VERSION} ${EXTRA_FLAG} --notes "${RELEASE_NOTES}" \
+            dist/qua-*.tar.gz \
+            dist/qua-*-py3-none-any.whl \
+            proto-${RELEASE_VERSION}.zip
+        env:
+          RELEASE_NOTES: ${{ steps.extracted-changelog.outputs.body }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.Build.outputs.version }}
+          EXTRA_FLAG: ${{ steps.version-logic.outputs.GITHUB_EXTRA_FLAG }}
+
+      - name: Publish distribution 📦 to Test PyPI
+        uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
