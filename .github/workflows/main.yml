@@ -132,8 +132,7 @@ jobs:
           RELEASE_VERSION: ${{ needs.Build.outputs.version }}
           EXTRA_FLAG: ${{ steps.version-logic.outputs.GITHUB_EXTRA_FLAG }}
 
-      - name: Publish distribution 📦 to Test PyPI
+      - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@v1.4.2
         with:
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
+          password: ${{ secrets.PYPI_API_TOKEN }}
