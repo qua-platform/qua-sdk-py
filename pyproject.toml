@@ -28,7 +28,7 @@ pytest = "^6.2.2"
 flake8-bugbear = "^21.4.3"
 poethepoet = "^0.10.0"
 grpcio-tools = "^1.39.0"
-betterproto = {extras = ["compiler"], version = "^1.2.5"}
+betterproto = { extras = ["compiler"], version = "^1.2.5" }
 pytest-cov = "^2.12.1"
 pytest-asyncio = "^0.15.1"
 
@@ -54,7 +54,10 @@ cmd = "flake8 qua"
 help = "Check for lint errors"
 
 [tool.poe.tasks.test]
-cmd = "pytest"
+sequence = [
+    { cmd = "pytest qua" },
+    { cmd = "pytest tests" }
+]
 help = "Run all unit tests"
 
 [tool.poe.tasks.test-server]
