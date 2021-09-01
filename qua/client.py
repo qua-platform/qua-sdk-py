@@ -17,7 +17,7 @@ class QuaClient:
             return Channel(host=self._host, port=self._port)
 
     async def get_server_info(self):
-        with self._create_channel() as channel:
+        async with self._create_channel() as channel:
             service = InfoServiceStub(channel)
             response = await service.get_info()
             return QuaMachineInfo(
