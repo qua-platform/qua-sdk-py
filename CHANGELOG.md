@@ -5,8 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
 ### Added
-
-* Basic QUA Client connecting to the info service collecting capabilities
-* Implementation detail service
+- Basic QUA Client connecting to the info service collecting capabilities
+and implementation details
+- Server tests folder to test if a server is compatible with the API
