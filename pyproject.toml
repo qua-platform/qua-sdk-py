@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qua"
-version = "0.1.0-rc1"
+version = "0.1.0"
 description = "SDK to interact with a quantum computer at the pulse level"
 authors = ["Tal Shani <tal@quantum-machines.co>"]
 license = "BSD-3-Clause"
